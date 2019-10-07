@@ -106,7 +106,10 @@ def generate_data(N = 1000, M = 2, deg_noise = 3):
     
     joblib.dump(splits, './files/data/splits')
     joblib.dump(unscaled_data, './files/data/unscaled_data')
-    joblib.dump(scaled_data, './files/data/scaled_data')    
+    joblib.dump(scaled_data, './files/data/scaled_data')
+    joblib.dump(scaler, './files/scalers/scaler')
+
+    return unscaled_data, scaled_data, scaler
 
 def poly_interp():
     pass
