@@ -9,6 +9,11 @@ from sklearn.preprocessing import MinMaxScaler
 import joblib
 import os
 import shutil
+import threading
+
+from keras import models
+from keras import layers
+from keras import optimizers
 
 np.random.seed(12)
 
@@ -16,7 +21,7 @@ np.random.seed(12)
 #plt.rc('font', family='serif')
 
 def check_dirs():
-    dirs = ['./files/', './files/figures/', './files/data/', './files/scalers/', './files/models/']
+    dirs = ['./files/', './files/figures/', './files/data/', './files/scalers/', './files/models/', './files/models/dnn/', './files/models/rnn/']
     for d in dirs:
         if not os.path.exists(d):
             os.makedirs(d)
@@ -71,17 +76,23 @@ def generate_data(N = 1000, M = 2, deg_noise = 3):
     unscaled_data = {
         'tr': {
             'x': domain[:tr_split],
-            'y': nsine[:tr_split, :]
+            'y': nsine[:tr_split, :],
+            'seqx': None,
+            'seqy': None
         },
 
         'val': {
             'x': domain[tr_split:(tr_split + val_split)],
-            'y': nsine[tr_split:(tr_split + val_split), :]
+            'y': nsine[tr_split:(tr_split + val_split), :],
+            'seqx': None,
+            'seqy': None
         }, 
 
         'ts': {
             'x': domain[(tr_split + val_split):],
-            'y': nsine[(tr_split + val_split):, :]
+            'y': nsine[(tr_split + val_split):, :],
+            'seqx': None,
+            'seqy': None
         }
     }
 
@@ -90,49 +101,117 @@ def generate_data(N = 1000, M = 2, deg_noise = 3):
     scaled_data = {
         'tr': {
             'x': unscaled_data['tr']['x'],
-            'y': scaler.fit_transform(unscaled_data['tr']['y'])
+            'y': scaler.fit_transform(unscaled_data['tr']['y']),
+            'seqx': None,
+            'seqy': None
         },
 
         'val': {
             'x': unscaled_data['val']['x'],
-            'y': scaler.transform(unscaled_data['val']['y'])
+            'y': scaler.transform(unscaled_data['val']['y']),
+            'seqx': None,
+            'seqy': None
         }, 
 
         'ts': {
             'x': unscaled_data['ts']['x'],
-            'y': scaler.transform(unscaled_data['ts']['y'])
+            'y': scaler.transform(unscaled_data['ts']['y']),
+            'seqx': None,
+            'seqy': None
         }
     }
+
+    # convert an array of values into a dataset matrix
+    def create_sequences(dataset, lookback = 8, foresight = 4):
+        dataX, dataY = [], []
+        for i in range(len(dataset) - lookback - foresight):
+            obs = dataset[i:(i + lookback)]
+            dataX.append(obs)
+            dataY.append(dataset[i + lookback + foresight])
+        return np.array(dataX), np.array(dataY)
+    
+    for k in ['tr', 'val', 'ts']:
+        unscaled_data[k]['seqx'], unscaled_data[k]['seqy'] = create_sequences(unscaled_data[k]['y'][:, 0])
+        scaled_data[k]['seqx'], scaled_data[k]['seqy'] = create_sequences(scaled_data[k]['y'][:, 0])
     
     joblib.dump(splits, './files/data/splits')
     joblib.dump(unscaled_data, './files/data/unscaled_data')
     joblib.dump(scaled_data, './files/data/scaled_data')
     joblib.dump(scaler, './files/scalers/scaler')
-
     return unscaled_data, scaled_data, scaler
 
-def poly_interp():
-    pass
+def dnn(inShape = (1,)):
+    model = models.Sequential([
+        layers.Dense(32, activation = 'relu', input_shape = inShape),
+        layers.Dense(64, activation = 'relu'),
+        layers.Dense(16, activation = 'relu'),
+        layers.Dense(1, activation = 'tanh')
+    ])
+    model.compile(loss = 'mae', optimizer = optimizers.Adam())
+    return model
 
-def conv1d():
-    pass
-
-def rnn():
-    pass
+def rnn(inShape = (8,)):
+    model = models.Sequential([
+        layers.GRU(32, activation = 'relu', input_shape = inShape, return_sequences = True),
+        layers.GRU(32, activation = 'relu'),
+        layers.Dense(16, activation = 'relu'),
+        layers.Dense(1, activation = 'linear')
+    ])
+    model.compile(loss = 'mae', optimizer = optimizers.Adam())
+    return model
 
 def evaluation():
-    pass
+    raw_data, data, scaler = generate_data()
 
+    def fit_eval_dnn(noise):
+        deep = dnn()
+        deephist = deep.fit(data['tr']['x'], 
+                            data['tr']['y'][:, noise], 
+                            batch_size = 1, 
+                            epochs = 20,
+                            validation_data = (data['val']['x'], data['val']['y'][:, noise]),
+                            verbose = 2)
+        deepeval = deep.evaluate(data['ts']['x'], data['ts']['y'][:, noise])
+        joblib.dump(deep, './files/models/dnn/model')
+        joblib.dump(deephist, './files/models/dnn/history')
+        joblib.dump(deepeval, './files/models/dnn/evaluation')
+        return deep, deephist, deepeval
+    
+    def fit_eval_rnn():
+        recurr = rnn()
+        recurrhist = recurr.fit(data['tr']['seqx'],
+                                data['tr']['seqy'],
+                                batch_size = 1, 
+                                epochs = 20,
+                                validation_data = (data['val']['seqx'], data['val']['seqy']),
+                                verbose = 2)
+        recurreval = recurr.evaluate(data['ts']['seqx'], data['ts']['seqy'])
+        joblib.dump(recurr, './files/models/rnn/model')
+        joblib.dump(recurrhist, './files/models/rnn/history')
+        joblib.dump(recurreval, './files/models/rnn/evaluation')
+        return recurr, recurrhist, recurreval
+    
+    # thread1 = threading.Thread(target = fit_eval_dnn, name = 'DNN')
+    # thread2 = threading.Thread(target = fit_eval_rnn, name = 'RNN')
+    # thread1.start()
+    # thread2.start()
+    # thread1.join()
+    # thread2.join()
+
+    return joblib.Parallel(n_jobs = 3)(joblib.delayed(fit_eval_dnn)(i) for i in range(data['tr']['y'].shape[1]))
 
 if __name__ == "__main__":
     print("----NOISE STUDY----")
-    clean = True
+    clean = False
     print("Creating directories...")
     check_dirs()
     print("Directories created.")
     print("Generating data...")
     generate_data()
     print("Data generated.")
+    print("Creating and evaluating models...")
+    evaluation()
+    print("Models created and evaluated.")
     if clean: 
         print("Cleaning up...")
         clean_up()
