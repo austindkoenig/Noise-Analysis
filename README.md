@@ -10,6 +10,7 @@
 
 ## Models
 
-- Polynomial Interpolation
-- 1D Convolutional Neural Network
+- Fully-Connected Deep Neural Network
 - Recurrent Neural Network
+
+
