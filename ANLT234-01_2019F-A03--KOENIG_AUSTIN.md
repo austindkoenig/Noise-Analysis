@@ -12,7 +12,7 @@ Describe briefly the intended audience and why these results are important.
 
 ## Data
 
-Explain data generation process outlining the several different sets of data we used. Highlight the log scale of the degree of noise.
+The data used was generated from a simple sine wave. Noise was added to create training data and testing was performed directly on the function value.
 
 ### Noise
 
