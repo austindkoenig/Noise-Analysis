@@ -1,9 +1,14 @@
-# Noise Analysis
-# Austin Koenig
+'''
+Noise Analysis
+Austin Koenig
 
+Reference for matplotlib scrolling legend solution
+https://stackoverflow.com/questions/55863590/adding-scroll-button-to-matlibplot-axes-legend
+'''
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Bbox
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import GradientBoostingRegressor
 
@@ -23,11 +28,7 @@ np.random.seed(12)
 #plt.rc('font', family='serif')
 
 def check_dirs():
-    dirs = ['./files/', './files/figures/', 
-            './files/data/', './files/scalers/', 
-            './files/models/', './files/models/dnn/', 
-            './files/models/rnn/', './files/models/gradboost/',
-            './files/figures/']
+    dirs = ['./files/', './files/figures/', './files/data/', './files/models/', './files/models/dnn/', './files/models/gradboost/', './files/figures/']
     for d in dirs:
         if not os.path.exists(d):
             os.makedirs(d)
@@ -35,7 +36,7 @@ def check_dirs():
 def clean_up():
     shutil.rmtree('./files/')
 
-def generate_data(N = 1000, M = 2, deg_noise = 100):
+def generate_data(N = 1000, M = 2, deg_noise = 20):
     # GENERATE DATA
     noise = np.geomspace(10 ** -4, 10 ** 1, deg_noise)
     domain = np.linspace(-M * np.pi, M * np.pi, N)
@@ -58,19 +59,6 @@ def generate_data(N = 1000, M = 2, deg_noise = 100):
         }
     }
 
-    # convert an array of values into a dataset matrix
-    def create_sequences(dataset, lookback = 8, foresight = 4):
-        dataX, dataY = [], []
-        for i in range(len(dataset) - lookback - foresight):
-            obs = dataset[i:(i + lookback)]
-            dataX.append(obs)
-            dataY.append(dataset[i + lookback + foresight])
-        return np.array(dataX), np.array(dataY)
-    
-    # for k in ['tr', 'ts']:
-    #     unscaled_data[k]['seqx'], unscaled_data[k]['seqy'] = create_sequences(unscaled_data[k]['y'])
-    #     scaled_data[k]['seqx'], scaled_data[k]['seqy'] = create_sequences(scaled_data[k]['y'])
-
     joblib.dump(data, './files/data/data')
     return data
 
@@ -85,30 +73,20 @@ def dnn(inShape = (1,)):
     model.compile(loss = 'mse', optimizer = optimizers.Adam())
     return model
 
-# def rnn(inShape = (8,)):
-#     model = models.Sequential([
-#         layers.GRU(32, activation = 'relu', input_shape = inShape, return_sequences = True),
-#         layers.GRU(32, activation = 'relu'),
-#         layers.Dense(16, activation = 'relu'),
-#         layers.Dense(1, activation = 'linear')
-#     ])
-#     model.compile(loss = 'mse', optimizer = optimizers.Adam())
-#     return model
-
 def evaluation():
     data = generate_data()
 
     gberrs = []
     dnnerrs = []
+    gbpreds = []
+    dnnpreds = []
 
     def fit_eval_grad_boost(noise):
-        boost = GradientBoostingRegressor(loss = 'ls', learning_rate = 0.1, n_estimators = 1000, max_depth = 5)
+        boost = GradientBoostingRegressor(loss = 'ls', learning_rate = 0.1, n_estimators = 1000, max_depth = 50)
         boost.fit(data['tr']['x'], data['tr']['y'][:, noise])
         test_err = np.mean((data['ts']['y'] - boost.predict(data['ts']['x'])) ** 2)
         joblib.dump(boost, './files/models/gradboost/model')
         joblib.dump(test_err, './files/models/gradboost/test_err')
-        # print(f"    Testing GradBoost.\n    Degree of Noise: {noise}")
-        # print(f"        Test Error: {test_err}")
         return boost, test_err
 
     def fit_eval_dnn(noise):
@@ -116,12 +94,10 @@ def evaluation():
         deephist = deep.fit(data['tr']['x'], 
                             data['tr']['y'][:, noise], 
                             batch_size = 16, 
-                            epochs = 20,
+                            epochs = 10,
                             validation_split = 0.3,
                             verbose = 0)
         deepeval = deep.evaluate(data['ts']['x'], data['ts']['y'])
-        # print(f"    Testing DeepNN.\n    Degree of Noise: {noise}")
-        # print(f"        Test Error: {deepeval}")
         joblib.dump(deep, './files/models/dnn/model')
         joblib.dump(deephist, './files/models/dnn/history')
         joblib.dump(deepeval, './files/models/dnn/evaluation')
@@ -151,19 +127,21 @@ def evaluation():
         m1, e1 = fit_eval_grad_boost(i)
         m2, h2, e2 = fit_eval_dnn(i)
         gberrs.append(e1)
+        gbpreds.append(m1.predict(data['ts']['x']))
         dnnerrs.append(e2)
+        dnnpreds.append(m2.predict(data['ts']['x']))
 
-    mnames = ['GBR', 'DNN']
+    # mnames = ['GBR', 'DNN']
 
-    print(f"\nModel: {mnames[0]}")
-    print("    | Deg. Noise | Test Error |")
-    for i in range(len(gberrs)):
-        print(f"    | {i:10} | {round(gberrs[i], 4):10} |")
+    # print(f"\nModel: {mnames[0]}")
+    # print("    | Deg. Noise | Test Error |")
+    # for i in range(len(gberrs)):
+    #     print(f"    | {i:10} | {round(gberrs[i], 4):10} |")
 
-    print(f"\nModel: {mnames[1]}")
-    print("    | Deg. Noise | Test Error |")
-    for i in range(len(dnnerrs)):
-        print(f"    | {i:10} | {round(dnnerrs[i], 4):10} |")
+    # print(f"\nModel: {mnames[1]}")
+    # print("    | Deg. Noise | Test Error |")
+    # for i in range(len(dnnerrs)):
+    #     print(f"    | {i:10} | {round(dnnerrs[i], 4):10} |")
 
     # with joblib.parallel_backend('dask'):
     #     joblib.Parallel(verbose = 100)(joblib.delayed(fit_eval_dnn)(i) for i in range(3))
@@ -185,17 +163,25 @@ def evaluation():
     a1.title.set_text("Test Set")
     a1.legend()
     test_figure.savefig('./files/figures/test_figure.pdf')
-
+    
     NN = data['tr']['y'].shape[1]
-    for i in range(NN):
-        if (i % 10 == 0):
+    for i in reversed(range(NN)):
+        if (i % 5 == 0):
             train_figure = plt.figure(figsize = (20, 15))
             ax = train_figure.add_subplot(1, 1, 1)
             ax.plot(data['tr']['x'], data['tr']['y'][:, i], 'ko', label = f"Deg. Noise: {i}", markersize = 2)
             ax.title.set_text(f"Training Set {i}")
             ax.legend()
-            train_figure.savefig(f'./files/figures/train_figure_n{i}.pdf')
-    #plt.show()
+            train_figure.savefig(f'./files/figures/train_figure_{i}.pdf')
+
+            prediction_figure = plt.figure(figsize = (20, 15))
+            a2 = prediction_figure.add_subplot(1, 1, 1)
+            a2.plot(data['ts']['x'], gbpreds[i], label = 'GradBoost')
+            a2.plot(data['ts']['x'], dnnpreds[i], label = 'DeepNN')
+            a2.plot(data['ts']['x'], data['ts']['y'], label = 'Ground Truth')
+            a2.title.set_text(f"Model Predictions (Deg. Noise {i})")
+            a2.legend()
+            prediction_figure.savefig(f'./files/figures/prediction_figure_{i}.pdf')
 
 if __name__ == "__main__":
     print("----NOISE STUDY----")

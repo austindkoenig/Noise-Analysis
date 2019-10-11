@@ -42,6 +42,8 @@ We found that Model 1 fell victim to excess amounts of noise where Model 2 was a
 
 Here, we will show the prediction plots and loss plots in order to outline the performance of our model. While looking at a table of error values can be convincing, a picture is worth a thousand words--or numbers, in this case.
 
+We will also highlight a rather contraversial observation of our results.
+
 ## Conclusion
 
 Discuss the further implications of these results. If we have relatively clean data, we are more likely to be able to get away with using models which rely on fewer parameters. However, if there is a lot of noise in our data, then a safer solution would be a deep neural network of some kind.
