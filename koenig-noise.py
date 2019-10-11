@@ -82,7 +82,7 @@ def evaluation():
     dnnpreds = []
 
     def fit_eval_grad_boost(noise):
-        boost = GradientBoostingRegressor(loss = 'ls', learning_rate = 0.1, n_estimators = 1000, max_depth = 50)
+        boost = GradientBoostingRegressor(loss = 'ls', learning_rate = 0.1, n_estimators = 1000, max_depth = 100)
         boost.fit(data['tr']['x'], data['tr']['y'][:, noise])
         test_err = np.mean((data['ts']['y'] - boost.predict(data['ts']['x'])) ** 2)
         joblib.dump(boost, './files/models/gradboost/model')
@@ -94,7 +94,7 @@ def evaluation():
         deephist = deep.fit(data['tr']['x'], 
                             data['tr']['y'][:, noise], 
                             batch_size = 16, 
-                            epochs = 10,
+                            epochs = 100,
                             validation_split = 0.3,
                             verbose = 0)
         deepeval = deep.evaluate(data['ts']['x'], data['ts']['y'])
