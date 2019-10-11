@@ -199,6 +199,7 @@ def evaluation():
 
 if __name__ == "__main__":
     print("----NOISE STUDY----")
+    clean_up()
     #client = Client(processes = False)
     clean = False
     print("Creating directories...")
