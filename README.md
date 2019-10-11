@@ -48,17 +48,4 @@ We will also highlight a rather contraversial observation of our results.
 
 Discuss the further implications of these results. If we have relatively clean data, we are more likely to be able to get away with using models which rely on fewer parameters. However, if there is a lot of noise in our data, then a safer solution would be a deep neural network of some kind.# <center>A Brief Noise Analysis</center>
 
-<center>Austin Koenig</center>
-
-## Data
-
-- Domain: $N$ uniformly spaced points in $[-m\pi, m\pi]$ for $m\in\mathbb{Z}$.
-- Training Data: Random samples from normal distribution with mean $\sin{(domain)}$ and standard deviation $s^2\in \{ 0.00001, 0.001, 0.1 \}$.
-- Testing Data: Exact values of $\sin{(domain)}$.
-
-## Models
-
-- Fully-Connected Deep Neural Network
-- Recurrent Neural Network
-
 
