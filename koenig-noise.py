@@ -102,20 +102,6 @@ def evaluation():
         joblib.dump(deephist, './files/models/dnn/history')
         joblib.dump(deepeval, './files/models/dnn/evaluation')
         return deep, deephist, deepeval
-    
-    # def fit_eval_rnn():
-    #     recurr = rnn()
-    #     recurrhist = recurr.fit(data['tr']['seqx'],
-    #                             data['tr']['seqy'],
-    #                             batch_size = 1, 
-    #                             epochs = 20,
-    #                             validation_data = (data['val']['seqx'], data['val']['seqy']),
-    #                             verbose = 2)
-    #     recurreval = recurr.evaluate(data['ts']['seqx'], data['ts']['seqy'])
-    #     joblib.dump(recurr, './files/models/rnn/model')
-    #     joblib.dump(recurrhist, './files/models/rnn/history')
-    #     joblib.dump(recurreval, './files/models/rnn/evaluation')
-    #     return recurr, recurrhist, recurreval
 
     # joblib.Parallel(n_jobs = 3)(joblib.delayed(fit_eval_dnn)(i) for i in range(data['tr']['y'].shape[1]))
     # joblib.Parallel(n_jobs = 3)(joblib.delayed(fit_eval_grad_boost)(i) for i in range(data['tr']['y'].shape[1]))
