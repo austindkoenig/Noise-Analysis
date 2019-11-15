@@ -59,7 +59,7 @@ class NoiseAnalysis(object):
         if os.path.exists(self.directories['root']):
             shutil.rmtree(self.directories['root'])
 
-    def generate_data(self, N = 1000, M = 2, deg_noise = 10, lower = 10 ** -3, upper = 1):
+    def generate_data(self, N = 1000, M = 2, deg_noise = 16, lower = 10 ** -3, upper = 1):
         geom_noise = np.geomspace(lower, upper, deg_noise)
         linear_noise = np.linspace(lower, upper, deg_noise)
         log_noise = np.logspace(lower, upper, deg_noise)
@@ -93,70 +93,109 @@ class NoiseAnalysis(object):
 
         joblib.dump(self.data, os.path.join(self.directories['data'], 'data'))
         self.checkpoints['data'] = True
+
+    def ann(self):
+        IN = layers.Input(shape = (1,))
+        y = layers.Dense(1024, activation = 'relu')(IN)
+        OUT = layers.Dense(1024, activation = 'tanh')(y)
+        m = models.Model(inputs = IN, outputs = OUT)
+        m.compile(loss = 'mse', optimizer = optimizers.Adam())
+        print("\nShallow Neural Network")
+        m.summary()
+        return m
     
-    def generate_models(self):
-        self.dnn()
-        self.gbr()
-        self.pnr()
-    
-    def dnn(self, key = ''):
+    def dnn(self):
         IN = layers.Input(shape = (1,))
         y = layers.Dense(1024, activation = 'relu')(IN)
         y = layers.Dense(1024, activation = 'relu')(y)
         y = layers.Dense(1024, activation = 'relu')(y)
         OUT = layers.Dense(1, activation = 'tanh')(y)
-        self.regressors[key] = models.Model(inputs = IN, outputs = OUT)
-        self.regressors[key].compile(loss = 'mse', optimizer = optimizers.Adam())
+        m = models.Model(inputs = IN, outputs = OUT)
+        m.compile(loss = 'mse', optimizer = optimizers.Adam())
         print("\nDeep Neural Network")
-        self.regressors[key].summary()
+        m.summary()
+        return m
     
-    def gbr(self, key = '', ests = 1000, depth = 10):
-        self.regressors[key] = GradientBoostingRegressor(loss = 'ls', 
-                                                         learning_rate = 0.1, 
-                                                         n_estimators = ests, 
-                                                         max_depth = depth, 
-                                                         validation_fraction = 0.3, 
-                                                         verbose = 1)
+    def gbr(self):
+        m = GradientBoostingRegressor(loss = 'ls', 
+                                      learning_rate = 0.1, 
+                                      n_estimators = 1000, 
+                                      max_depth = 10, 
+                                      validation_fraction = 0.3, 
+                                      verbose = 1))
         print("\nGradient Boost Regressor")
-        print(json.dumps(self.regressors[key].get_params(), indent = 2))
+        print(json.dumps(m.get_params(), indent = 2))
+        return m
     
-    def pnr(self, key = '', degree = 6):
-        self.regressors[key] = LinearRegression()
+    def pnr(self):
+        m = LinearRegression()
         print("\nPolynomial Regressor")
-        print(json.dumps(self.regressors[key].get_params(), indent = 2))
+        print(json.dumps(m.get_params(), indent = 2))
+        return m
     
     def evaluation(self, EPCHS = 500, BATCH = 64):
+        ann_key = 'ANN'
         dnn_key = 'DNN'
         gbr_key = 'GBR'
         pnr_key = 'PNR'
 
+        self.regressors[dnn_key] = []
+        self.regressors[gbr_key] = []
+        self.regressors[pnr_key] = []
+        self.regressors[ann_key] = []
         self.predictions[dnn_key] = []
         self.predictions[gbr_key] = []
         self.predictions[pnr_key] = []
+        self.predictions[ann_key] = []
         self.tests[dnn_key] = []
         self.tests[gbr_key] = []
         self.tests[pnr_key] = []
+        self.tests[ann_key] = []
 
         # fit models
         for i in range(self.data['train']['y'].shape[1]):
-            self.dnn(dnn_key)
-            self.regressors[dnn_key].fit(self.data['train']['x'], self.data['train']['y'][:, i],
+            self.regressors[ann_key].append(self.ann())
+            self.regressors[ann_key][i].fit(self.data['train']['x'], self.data['train']['y'][:, i],
+                                         batch_size = BATCH, epochs = EPCHS,
+                                         validation_split = 0.3, verbose = 0)
+            self.predictions[ann_key].append(self.regressors[ann_key].predict(self.data['test']['x']))
+            self.tests[ann_key].append(np.mean((self.predictions[ann_key][i] - self.data['test']['y']) ** 2))
+
+            self.regressors[dnn_key].append(self.dnn())
+            self.regressors[dnn_key][i].fit(self.data['train']['x'], self.data['train']['y'][:, i],
                                          batch_size = BATCH, epochs = EPCHS,
                                          validation_split = 0.3, verbose = 0)
             self.predictions[dnn_key].append(self.regressors[dnn_key].predict(self.data['test']['x']))
-            self.tests[dnn_key].append(self.regressors[dnn_key].evaluate(self.data['test']['x'], self.data['test']['y']))
+            self.tests[dnn_key].append(np.mean((self.predictions[dnn_key][i] - self.data['test']['y']) ** 2))
 
-            self.gbr(gbr_key)
-            self.regressors[gbr_key].fit(self.data['train']['x'], self.data['train']['y'][:, i])
+            self.regressors[gbr_key].append(self.gbr())
+            self.regressors[gbr_key][i].fit(self.data['train']['x'], self.data['train']['y'][:, i])
             self.predictions[gbr_key].append(self.regressors[gbr_key].predict(self.data['test']['x']))
-            self.tests[gbr_key].append((self.predictions[gbr_key][i] - self.data['test']['y']) ** 2)
+            self.tests[gbr_key].append(np.mean((self.predictions[gbr_key][i] - self.data['test']['y']) ** 2))
 
-            self.pnr(pnr_key)
+            self.regressors[pnr_key].append(self.pnr())
             fitter = PolynomialFeatures(degree = 10)
             x_poly = fitter.fit_transform(self.data['train']['x'])
-            self.regressors[pnr_key].fit(x_poly, self.data['train']['y'][:, i])
+            self.regressors[pnr_key][i].fit(x_poly, self.data['train']['y'][:, i])
             self.predictions[pnr_key].append(self.regressors[pnr_key].predict(fitter.transform(self.data['test']['x'])))
-            self.tests[pnr_key].append((self.predictions[pnr_key][i] - self.data['test']['y']) ** 2)
+            self.tests[pnr_key].append(np.mean((self.predictions[pnr_key][i] - self.data['test']['y']) ** 2))
+        
+        # plots
+        error_figure = plt.figure(figsize = (20, 15))
+        error_axis = noise_figure.add_subplot(111)
+        error_axis.plot(self.tests[gbr_key], label = "Gradient Boost Regression")
+        error_axis.plot(self.tests[pnr_key], label = "Polynomial Regression")
+        error_axis.plot(self.tests[ann_key], label = "Artificial Neural Network")
+        error_axis.plot(self.tests[dnn_key], label = "Deep Neural Network")
+        error_axis.title.set_text("Model Errors")
+        error_axis.set_xlabel("Degree of Noise")
+        error_axis.set_ylabel("Error Level")
+        error_axis.legend()
+        error_figure.savefig(os.path.join(self.directories['figures'], 'errors.pdf'))
+
+        for i in range(self.data['train']['y'].shape[1]):
+            if i % 3 == 0:
+                pass
 
 if __name__ == '__main__':
     na = NoiseAnalysis()
