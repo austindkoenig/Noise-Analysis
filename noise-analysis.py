@@ -17,9 +17,9 @@ import os
 import sys
 import shutil
 
-from keras import models
-from keras import layers
-from keras import optimizers
+from tensorflow.keras import models
+from tensorflow.keras import layers
+from tensorflow.keras import optimizers
 
 np.random.seed(12)
 
@@ -44,9 +44,12 @@ class NoiseAnalysis(object):
         self.predictions = {}
         self.tests = {}
 
+        self.clean_up()
+        self.check_dirs()
+
         if out_file:
             sys.stdout = open(os.path.join(self.directories['root'], 'log.md'), 'w')
-    
+
     def check_dirs(self):
         for d in self.directories:
             if not os.path.exists(self.directories[d]):
@@ -64,7 +67,7 @@ class NoiseAnalysis(object):
         tsine = np.sin(domain)
         nsine = np.array([np.random.normal(tsine, n) for n in linear_noise]).T
 
-        data = {
+        self.data = {
             'train': {
                 'x': np.reshape(domain, (-1, 1)),
                 'y': np.reshape(nsine, (-1, nsine.shape[1]))
@@ -88,7 +91,7 @@ class NoiseAnalysis(object):
         noise_axis.legend()
         noise_figure.savefig(os.path.join(self.directories['figures'], 'noise.pdf'))
 
-        joblib.dump(data, os.path.join(self.directories['data'], 'data'))
+        joblib.dump(self.data, os.path.join(self.directories['data'], 'data'))
         self.checkpoints['data'] = True
     
     def generate_models(self):
@@ -140,19 +143,22 @@ class NoiseAnalysis(object):
             self.regressors[dnn_key].fit(self.data['train']['x'], self.data['train']['y'][:, i],
                                          batch_size = BATCH, epochs = EPCHS,
                                          validation_split = 0.3, verbose = 0)
+            self.predictions[dnn_key].append(self.regressors[dnn_key].predict(self.data['test']['x']))
             self.tests[dnn_key].append(self.regressors[dnn_key].evaluate(self.data['test']['x'], self.data['test']['y']))
 
             self.gbr(gbr_key)
             self.regressors[gbr_key].fit(self.data['train']['x'], self.data['train']['y'][:, i])
-            self.tests[gbr_key] = self.regressors[gbr_key].evaluate(self.data['test']['x'], self.data['test'])
+            self.predictions[gbr_key].append(self.regressors[gbr_key].predict(self.data['test']['x']))
+            self.tests[gbr_key].append((self.predictions[gbr_key][i] - self.data['test']['y']) ** 2)
 
             self.pnr(pnr_key)
-            x_poly = PolynomialFeatures(degree = 10).fit_transform(self.data['train']['x'])
+            fitter = PolynomialFeatures(degree = 10)
+            x_poly = fitter.fit_transform(self.data['train']['x'])
             self.regressors[pnr_key].fit(x_poly, self.data['train']['y'][:, i])
+            self.predictions[pnr_key].append(self.regressors[pnr_key].predict(fitter.transform(self.data['test']['x'])))
+            self.tests[pnr_key].append((self.predictions[pnr_key][i] - self.data['test']['y']) ** 2)
 
 if __name__ == '__main__':
     na = NoiseAnalysis()
-    na.clean_up()
-    na.check_dirs()
     na.generate_data()
     na.evaluation()
