@@ -4,49 +4,50 @@
 
 ## Introduction
 
-Noise is the sole reason why every desired result about nature (i.e. the environment) is not deterministically calculatable. Unfortunately, we've yet to find a way to avoid it altogether; but, there exist many methods of removing noise from the observed data in order to obtain the signal of importance.
+Noise is the reason why every desired result about nature (i.e. the environment) is not deterministically calculatable. Unfortunately, we've yet to find a way to avoid it altogether; but, there exist many methods of removing noise from the observed data in order to obtain the signal of importance
 
-This is not a study on machine learning models. This is a study on noise and how it affects the performance of machine learning models with it's prominence in training data. First, we embark on a brief discussion on noise and it's origin; then, we consider some experimental results comparing the tolerance of noise between three different machine learning models.
+This is not a study on machine learning models, but a study on noise and how it affects the performance of machine learning models with it's prominence in training data. First, we embark on a brief discussion on noise and it's origin; then, we consider some experimental results comparing the tolerance of noise between three different machine learning models.
 
-### Noise Genesis
+## Noise Genesis
 
-Before we define noise, let's set up a structure to the situation. First, let's assume our realm of conversation consists only of an agent (e.g. an engineer, robot, self-driving car, etc.) and the environment. Perhaps this environment contains other agents, or perhaps it contains some dynamic process which allows motion through time and space. In either case, we are only concerned with one agent within an environment.
+Before we define noise, let's prepare a platform off of which to jump towards the idea of noise. 
 
-Furthermore, let's precisely define an agent as an actor with a finite set of sensory inputs (e.g. eyes, a microphone, an infrared sensor, etc.) and a set of potential control outputs (e.g. raise arm, move forward ten meters, deploy parachute, etc.). 
+First, let's assume our realm of conversation consists only of an agent (e.g. an engineer, robot, self-driving car, etc.) and the environment. Perhaps this environment contains other agents, or perhaps it contains some dynamic processes which allow motion through time and space. In either case, we are only concerned with one agent within an environment.
 
-In order for this agent to interact with the environment, she requres a way to measure things as well as some approximate knowledge of how the environment works. Formally, let's define these requirements as follows:
+Furthermore, let's describe an agent as an actor with a set of sensory inputs (e.g. eyes, a microphone, an infrared sensor, etc.) and a set of potential control outputs (e.g. raise arm, move forward ten meters, deploy parachute, etc.). 
 
-- Condition $A$ : An internal model<sup>1</sup> of the environment
-- Condition $B$ : A method of observation 
-- Condition $C$ : A method to combine environmental observations with the internal environmental model
+In order for this agent to interact with the environment, some other conditions must be met. Let's formally define an agent as follows.
 
-It is also important to note that condition $C$ depends on conditions $A$ and $B$, which implies that should any of these conditions fail, we lose the assumption of agency. Therefore, an agent is bound to these conditions just as these conditions describe the very agency we've just defined.
+An agent is an actor (e.g. human, robot, car, etc.) that possesses
+1. A set of sensory inputs
+2. A set of control outputs
 
-Since we care to analyze the effect of noise in certain outcomes, this blog post is primarily concerned with conditions $B$ and $C$. As humans, our methods of observation include the systems involving our five primary senses. For self-driving cars, these methods of observation may include systems which rely on cameras, LIDAR sensors, and accelerometers. In any case, agents use these methods of observation to *measure* certain aspects of the environment. Intuitively, the aspects which an agent measures are chosen based on learned ideas from previous observations. 
+Moreover, in order for agency to exist, the following conditions must hold:
+- $A$ : The agent maintains an internal model<sup>1</sup> of the environment.
+- $B$ : The agent has at least one method of observation.
+- $C$ : The agent is able to combine environmental observations with the internal environmental model.
 
-The act of an agent measuring an environmental aspect is the point of noise genesis. Since the agent's internal model of the environment is an approximation of the environment itself, there exists the underlying assumption that agents cannot match their internal model exactly to the environment. The shorthand (and arguably more precise) version of this is to say that the agent's knowledge of the environment will always be *incomplete* due to the nondeterministic nature of known effective learning methods. 
+Since we care to analyze the effect of noise in certain outcomes, this blog post is primarily concerned with condition $B$ and somewhat concerned with condition $C$. As humans, our methods of observation include the systems involving our primary senses. For self-driving cars, these methods of observation may include systems which rely on cameras, LIDAR sensors, and accelerometers. In any case, agents use these methods of observation to *measure* certain aspects of the environment. Intuitively, the aspects which an agent measures are chosen based on learned ideas from previous observations. From this, we assume that the agent has no prior knowledge of the environment such that they have to learn it from pure observation and measurement.
 
-This incompleteness is where noise comes from. Since each observation is only limited to the agent's set of sensory inputs, each observation yields only an incomplete version of the environment, which we will call the *local* environment (that is, the environmental aspects that are immediately observable by the agent). This incompleteness can propagate as the number of observations increases, especially if the agent has yet to consider any number of the components of the environment.
+The act of an agent measuring an environmental aspect is the point of noise genesis. Since the agent's internal model of the environment is an approximation of the environment itself that is only based on observation, there exists the underlying assumption that agents cannot map their internal model exactly to the environment. The shorthand (and more precise) version of this is to say that the agent's knowledge of the environment will always be *incomplete* due to the nondeterministic nature of known effective learning methods.
 
-The remainder of this post will focus mainly on noise in machine learning methods since there is little that I can surely say about how humans learn.
+This incompleteness is the origin of noise. Since each observation is only limited to the agent's set of sensory inputs, each observation yields only an incomplete version of the environment, which we will call the *local* environment (that is, the environmental aspects that are immediately observable by the agent). The noise is defined as the difference between the local environment and the global environment. This incompleteness can propagate as the number of observations increases, especially if the agent has yet to consider any number of the components of the environment.
 
-<sup>1</sup> This usage of the term *model* is different than the common usage in machine learning. This usage refers to a general description outlining the components of the environment and how they all work.
+Why is noise a problem? One might argue that the agent only needs to be concerned with her local environment because it is the only part of the environment that proposes interactibility to the agent. However, this perspective is skewed: while this post has thus far only discussed the situation of one agent in an environment, reality consists of many agents across many disjoint local environments. Thus, agents must avoid conflict with each other by considering what is beyond each of their local environments.
 
-### Motivation
+For instance, both humans and birds of paradise<sup>2</sup> are agents according to our definition. On the island of New Guinea, these agents are in conflict. People are destroying the birds' natural habitats in order to harvest and grow resources, thereby threatening the existence of these beautiful creatures [1]. Humans are concerned with their local environment which requires their possession of crops and building materials whereas birds of paradise are concerned with the survival of their local environment. There is a great amount of noise stemming from these disjoint local environments, culminating in the potential destruction of a species.
 
-Now that we know what noise is, it should be apparent why we want to avoid it.
+For reasons like this, it is important to combat noise to the fullest of our abilities. As stated above, noise is caused by a disparity between the perspectives of interacting agents. Later in this post, we will discuss an experiment comparing a few different machine learning models and their abilities to find the signal in the noise. First, we will see how the data was generated and then describe the models which were tested. Finally, we will go over the results of the experiment.
+
+<sup>1</sup> This usage of the term *model* is different than the common usage in machine learning. Here, it refers to a general description outlining the components of the environment and how they all work.
+
+<sup>2</sup> I highly recommend the Netflix documentary called [Dancing With The Birds](https://www.netflix.com/title/80186796).
 
 ## Data
 
-The data used was generated from a simple sine wave. Noise was added to create training data and testing was performed directly on the function value.
+The data used was generated from a simple sine wave. A sine wave was chosen because it is a simple function that isn't a polynomial. This is an important feature of the experiment because one of our models will employ polynomials, so we don't want there to be a "competitive advantage".
 
-### Noise
-
-A brief discussion on noise in data.
-
-### Training vs. Testing
-
-Discuss the fact that we used lots of noise in the training sets but zero noise in the testing set. Here, we will show the plots of the testing data as well as from a few of the training sets as benchmarks.
+The testing set was generated as $\sin{x} : x\in\mathbb{R}[-2\pi,2\pi]$
 
 ## Models
 
@@ -54,6 +55,10 @@ We are comparing the following models to see which will be the least sensitive t
 1. Polynomial Regressor
 2. Gradient Boost Regressor
 3. Deep Neural Network
+
+### What is a Polynomial Regressor?
+
+Briefly explain what a polynomial regressor is and why we chose this model.
 
 ### What is a Gradient Boost Regressor?
 
@@ -74,3 +79,7 @@ We will also highlight a rather contraversial observation of our results.
 ## Conclusion
 
 Discuss the further implications of these results. If we have relatively clean data, we are more likely to be able to get away with using models which rely on fewer parameters. However, if there is a lot of noise in our data, then a safer solution would be a deep neural network of some kind.
+
+## Sources
+
+[1] [Organism Fact Sheet: Birds of Paradise](https://www.famsf.org/files/Fact%20Sheet_%20birds_of_paradise.pdf)
