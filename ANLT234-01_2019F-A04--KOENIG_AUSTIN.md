@@ -93,6 +93,12 @@ While knowing the error is useful in giving a rating system for the models, it i
 
 ![Prediction Plot of 0 Degrees of Noise](./results/figures/prediction--noise-0.pdf)
 
+![Prediction Plot of 4 Degrees of Noise](./results/figures/prediction--noise-4.pdf)
+
+![Prediction Plot of 8 Degrees of Noise](./results/figures/prediction--noise-8.pdf)
+
+![Prediction Plot of 12 Degrees of Noise](./results/figures/prediction--noise-12.pdf)
+
 ## Conclusion
 
 There are many methods to preprocess data to sift through noise, none of which we used here. This post was focused mainly on how particular types of machine learning models withstand the burden of noise. We tested four different models, which were meant to be archetypes for different machine learning methods, against sixteen different degrees of noise. There are techniques to filter data in nearly every stage of the data science process. We have only observed the capabilities of models in handling the noise themselves. In reality, much more data cleaning and preprocessing would have occured, but much of that was omitted due to the nature of the experiment.
