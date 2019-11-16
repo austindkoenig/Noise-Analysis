@@ -37,7 +37,7 @@ Why is noise a problem? One might argue that the agent only needs to be concerne
 
 For instance, both humans and birds of paradise<sup>2</sup> are agents according to our definition. On the island of New Guinea, these agents are in conflict. People are destroying the birds' natural habitats in order to harvest and grow resources, thereby threatening the existence of these beautiful creatures [1]. Humans are concerned with their local environment which requires their possession of crops and building materials whereas birds of paradise are concerned with the survival of their local environment. There is a great amount of noise stemming from these disjoint local environments, culminating in the potential destruction of a species.
 
-For reasons like this, it is important to combat noise to the fullest of our abilities. As stated above, noise is caused by a disparity between the perspectives of interacting agents. Later in this post, we will discuss an experiment comparing a few different machine learning models and their abilities to find the signal in the noise. First, we will see how the data was generated and then describe the models which were tested. Finally, we will go over the results of the experiment.
+For reasons like this, it is important to combat noise to the fullest of our abilities. As stated above, noise is caused by a disparity between the perspectives of interacting agents. Later in this post, we will discuss an experiment comparing a few different machine learning models and their abilities to find the signal in the noise. First, we will see how the data was generated and then briefly describe the models which were tested. Finally, we will discuss the results of the experiment.
 
 <sup>1</sup> This usage of the term *model* is different than the common usage in machine learning. Here, it refers to a general description outlining the components of the environment and how they all work.
 
@@ -59,38 +59,45 @@ The input set for both training and testing is
   $$Y_{train}=\{\mathcal{N}(y, \sigma^2);|\; y\in Y_{test},\;\sigma^2\in\varSigma\}$$
   where $\varSigma$ is the set of all "noise levels".
 
-In English, this means that all input values are real numbers between $-2\pi$ and $2\pi$; the testing outputs are the exact sine value, and the training outputs are samples from the normal distribution with mean equal to the exact sine value and a varying standard deviation. The standard deviation varies across what we will call *degrees of noise*, which ranges from 1.0.
+In English, this means that all input values are real numbers between $-2\pi$ and $2\pi$; the testing outputs are the exact sine value, and the training outputs are samples from the normal distribution with mean equal to the exact sine value and a varying standard deviation. The standard deviation varies across what we will call *degrees of noise*, which ranges between 0.001 and 1.
+
+The Python package `numpy` offers a few different ways we can range through the interval $[0.001, 1]$. The two we are interested in are:
+- [`numpy.linspace`](https://docs.scipy.org/doc/numpy/reference/generated/numpy.linspace.html) - Linear spacing means that the points that are sampled are equidistant from each other.
+- [`numpy.geomspace`](https://docs.scipy.org/doc/numpy/reference/generated/numpy.geomspace.html) - Geometric spacing means that the points that are sampled are equidistant from each other on a log scale.
+
+The reason this matters is that if we use geometric (or logarithmic) spacing, then the sampled points will be concentrated in a nonlinear fashion. To illustrate this more clearly, consider the following plot:
+
+![Noise Plot](./results/figures/noise.pdf)
+
+Notice that the points sampled linearly create a straight line whereas the points sampled geometrically are concentrated more in the lower values even though they vary across the same interval. If we were concerned more about situations with less noise, perhaps the geometrically spaced samples would suit us; however, we wish to be robust and simply use the linearly spaced points.
+
+Overall, we have two sets: training and testing. Our training set has one set of inputs and twelve sets of outputs (we experiment with 12 degrees of noise). The testing set has one set of inputs and one set of outputs. The goal is to create and test a separate model (of each variety described below) for each degree of noise. Then, we will compare the errors and predictions of each type of model to see how they withstand the noise that we've just generated.
 
 ## Models
 
 We are comparing the following models to see which will be the least sensitive to noise:
-1. Polynomial Regressor
-2. Gradient Boost Regressor
-3. Deep Neural Network
+1. Polynomial Regressor - A polynomial regressor is an extension of linear regression in that it employs higher order terms to make predictions.
+2. Gradient Boost Regressor - A gradient boost regressor is an extension of decision trees (or random forests) in that it uses gradient descent for parameter optimization.
+3. Shallow Neural Network - Shallow neural networks can be considered as a few layers of nonlinear combinations
+4. Deep Neural Network - Deep neural networks are similar to shallow neural networks; they simply contain more than one hidden layer.
 
-### What is a Polynomial Regressor?
-
-Briefly explain what a polynomial regressor is and why we chose this model.
-
-### What is a Gradient Boost Regressor?
-
-Briefly explain what a gradient boosting is and why we chose this model.
-
-### What is a Deep Neural Network?
-
-Briefly explain what a deep neural network is and why we chose it.
+This group of models was chosen because it includes one model that doesn't use gradient descent, two models which are relatively small by number of parameters, and one deep neural network that is presumably the most accurate model. This mix seems to encapsulate a fair amount of the varieties of learning models that are employed. How did these models actually perform?
 
 ## Results & Discussion
 
-We found that Model 1 fell victim to excess amounts of noise where Model 2 was able to withstand the noise rather well.
+The most obvious thing to look at are the errors. Since the models we picked are relatively different in the number of parameters. This will cause an inherent difference in errors, but we wish only to observe the trends with respect to one another. Therefore, they have been scaled to a standard normal distribution so that we can observe them all side-by-side.
 
-Here, we will show the prediction plots and loss plots in order to outline the performance of our model. While looking at a table of error values can be convincing, a picture is worth a thousand words--or numbers, in this case.
+![Error Plot](./results/figures/errors.pdf)
 
-We will also highlight a rather contraversial observation of our results.
+While knowing the error is useful in giving a rating system for the models, it is still very helpful to see the prediction plots for each model. For instance, techniques like high-order Newton-Cotes interpolation operate very poorly around the edges of the interval. This is not reflected in the error, so we can use the prediction plots to see in which areas of the function to be learned (sine, in this case) our models performed the best/worst. Moreover, we can see how these behaviors change as we introduce more and more noise into the data.
+
+![Prediction Plot of 0 Degrees of Noise](./results/figures/prediction--noise-0.pdf)
 
 ## Conclusion
 
-Discuss the further implications of these results. If we have relatively clean data, we are more likely to be able to get away with using models which rely on fewer parameters. However, if there is a lot of noise in our data, then a safer solution would be a deep neural network of some kind.
+There are many methods to preprocess data to sift through noise, none of which we used here. This post was focused mainly on how particular types of machine learning models withstand the burden of noise. We tested four different models, which were meant to be archetypes for different machine learning methods, against sixteen different degrees of noise. There are techniques to filter data in nearly every stage of the data science process. We have only observed the capabilities of models in handling the noise themselves. In reality, much more data cleaning and preprocessing would have occured, but much of that was omitted due to the nature of the experiment.
+
+Going forward, we can look at other filtering methods that are not embedded directly into the model itself. Also, a wider range of models and model sizes should be tested. There is even potential for a search problem in finding the best combination of noise reduction techniques using a machine learning model. However, this blog is a good start and poses a platform on which to build even deeper ideas about dealing with noise in data. We have simply withstood it, but in the future we wish to reduce it before it even reaches the models.
 
 ## Sources
 
