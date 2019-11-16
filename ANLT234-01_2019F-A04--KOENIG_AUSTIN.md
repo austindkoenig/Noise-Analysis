@@ -45,9 +45,21 @@ For reasons like this, it is important to combat noise to the fullest of our abi
 
 ## Data
 
-The data used was generated from a simple sine wave. A sine wave was chosen because it is a simple function that isn't a polynomial. This is an important feature of the experiment because one of our models will employ polynomials, so we don't want there to be a "competitive advantage".
+The data used was generated from a sine wave. A sine wave was chosen because it is a simple function that isn't a polynomial. This is an important feature of the experiment because one of our models will employ polynomials, so we don't want there to be a "competitive advantage".
 
-The testing set was generated as $\sin{x} : x\in\mathbb{R}[-2\pi,2\pi]$
+Following is a brief description on how each of the sets of data were calculated.
+
+The input set for both training and testing is 
+
+- Training & Testing Inputs:
+  $$X=\{x\in\mathbb{R}[-2\pi, 2\pi]\}$$ 
+- Testing Outputs: 
+  $$Y_{test}=\{\sin{x}\;|\; x\in X\}$$
+- Training Outputs: 
+  $$Y_{train}=\{\mathcal{N}(y, \sigma^2);|\; y\in Y_{test},\;\sigma^2\in\varSigma\}$$
+  where $\varSigma$ is the set of all "noise levels".
+
+In English, this means that all input values are real numbers between $-2\pi$ and $2\pi$; the testing outputs are the exact sine value, and the training outputs are samples from the normal distribution with mean equal to the exact sine value and a varying standard deviation. The standard deviation varies across what we will call *degrees of noise*, which ranges from 1.0.
 
 ## Models
 
