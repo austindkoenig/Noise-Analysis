@@ -209,3 +209,7 @@ Polynomial Regressor (degree: 10)
   "normalize": false
 }
 ```
+
+# Appendix Before
+
+The code for this project and all files included can be found here: https://github.com/austindkoenig/Noise-Analysis
