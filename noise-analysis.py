@@ -22,7 +22,8 @@ from keras import layers
 from keras import optimizers
 
 np.random.seed(12)
-
+plt.rcParams['image.cmap'] = 'Dark2'
+plt.rcParams['axes.prop_cycle'] = plt.cycler(color = plt.cm.Dark2.colors)
 
 class NoiseAnalysis(object):
     def __init__(self, out_file = True):
@@ -43,6 +44,7 @@ class NoiseAnalysis(object):
         self.regressors = {}
         self.predictions = {}
         self.tests = {}
+        self.standardized_tests = {}
 
         self.clean_up()
         self.check_dirs()
@@ -87,6 +89,13 @@ class NoiseAnalysis(object):
         noise_axis.set_xlabel("Degree of Noise")
         noise_axis.set_ylabel("Noise Level")
         noise_axis.legend()
+
+        noise_axis.spines['top'].set_visible(False)
+        noise_axis.spines['bottom'].set_visible(False)
+        noise_axis.spines['left'].set_visible(False)
+        noise_axis.spines['right'].set_visible(False)
+        noise_axis.tick_params(length = 0.0, width = 0.0)
+
         noise_figure.savefig(os.path.join(self.directories['figures'], 'noise.pdf'))
 
         joblib.dump(self.data, os.path.join(self.directories['data'], 'data'))
@@ -177,17 +186,7 @@ class NoiseAnalysis(object):
             self.regressors[pnr_key][i].fit(x_poly, self.data['train']['y'][:, i])
             self.predictions[pnr_key].append(self.regressors[pnr_key][i].predict(fitter.transform(self.data['test']['x'])))
             self.tests[pnr_key].append(np.mean((self.predictions[pnr_key][i] - self.data['test']['y']) ** 2))
-        
-        # scale the errors
-        gbr_scaler = StandardScaler()
-        pnr_scaler = StandardScaler()
-        ann_scaler = StandardScaler()
-        dnn_scaler = StandardScaler()
 
-        self.tests[gbr_key] = gbr_scaler.fit_transform(np.array(self.tests[gbr_key]).reshape((-1, 1)))
-        self.tests[pnr_key] = pnr_scaler.fit_transform(np.array(self.tests[pnr_key]).reshape((-1, 1)))
-        self.tests[ann_key] = ann_scaler.fit_transform(np.array(self.tests[ann_key]).reshape((-1, 1)))
-        self.tests[dnn_key] = dnn_scaler.fit_transform(np.array(self.tests[dnn_key]).reshape((-1, 1)))
 
         # plots
         error_figure = plt.figure(figsize = (20, 15))
@@ -199,23 +198,41 @@ class NoiseAnalysis(object):
         error_axis.title.set_text("Model Errors")
         error_axis.set_xlabel("Degree of Noise")
         error_axis.set_ylabel("Error")
+        error_axis.spines['top'].set_visible(False)
+        error_axis.spines['bottom'].set_visible(False)
+        error_axis.spines['left'].set_visible(False)
+        error_axis.spines['right'].set_visible(False)
+        error_axis.tick_params(length = 0.0, width = 0.0)
         error_axis.legend()
+
         error_figure.savefig(os.path.join(self.directories['figures'], 'errors.pdf'))
 
-        for i in range(self.data['train']['y'].shape[1]):
-            # every third degree of noise...
-            if i % 4 == 0:
-                prediction_figure = plt.figure(figsize = (20, 15))
-                prediction_axis = prediction_figure.add_subplot(111)
-                prediction_axis.plot(self.data['test']['x'], self.predictions[gbr_key][i], label = "Gradient Boost Regression")
-                prediction_axis.plot(self.data['test']['x'], self.predictions[pnr_key][i], label = "Polynomial Regression")
-                prediction_axis.plot(self.data['test']['x'], self.predictions[ann_key][i], label = "Artificial Neural Network")
-                prediction_axis.plot(self.data['test']['x'], self.predictions[dnn_key][i], label = "Deep Neural Network")
-                prediction_axis.title.set_text(f"Model Predictions of {i}th Degree of Noise")
-                prediction_axis.set_xlabel("x")
-                prediction_axis.set_ylabel("y")
-                prediction_axis.legend()
-                prediction_figure.savefig(os.path.join(self.directories['figures'], f'prediction--noise-{i}.pdf'))
+
+        prediction_figure, prediction_axes = plt.subplots(nrows = 2, ncols = 2, sharex = 'all', sharey = 'all', figsize = (20, 15))
+        prediction_noises = [0, 6, 12, 15]
+        k = 0
+
+        for i in [0, 1]:
+            for j in [0, 1]:
+                prediction_axes[i, j].plot(self.data['test']['x'], self.predictions[gbr_key][prediction_noises[k]], label = "Gradient Boost Regression")
+                prediction_axes[i, j].plot(self.data['test']['x'], self.predictions[pnr_key][prediction_noises[k]], label = "Polynomial Regression")
+                prediction_axes[i, j].plot(self.data['test']['x'], self.predictions[ann_key][prediction_noises[k]], label = "Artificial Neural Network")
+                prediction_axes[i, j].plot(self.data['test']['x'], self.predictions[dnn_key][prediction_noises[k]], label = "Deep Neural Network")
+
+                prediction_axes[i, j].set_title(f"Model Predictions of {prediction_noises[k]}th Degree of Noise")
+                prediction_axes[i, j].spines['top'].set_visible(False)
+                prediction_axes[i, j].spines['bottom'].set_visible(False)
+                prediction_axes[i, j].spines['left'].set_visible(False)
+                prediction_axes[i, j].spines['right'].set_visible(False)
+                prediction_axes[i, j].tick_params(length = 0.0, width = 0.0)
+
+                if k == 3:
+                    handles, labels = prediction_axes[i, j].get_legend_handles_labels()
+                    prediction_figure.legend(handles, labels, loc = 'lower center')
+
+                k += 1
+        
+        prediction_figure.savefig(os.path.join(self.directories['figures'], f'predictions.pdf'), transparent = True)
 
 if __name__ == '__main__':
     na = NoiseAnalysis()
