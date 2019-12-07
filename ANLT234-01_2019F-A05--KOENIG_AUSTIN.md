@@ -5,46 +5,21 @@ author: Austin Koenig
 
 # Introduction
 
-Noise is the reason why every desired result about nature (i.e. the environment) is not deterministically calculable. Unfortunately, we've yet to find a way to avoid it altogether; but, there exist many methods of removing noise from the observed data in order to obtain the signal of importance.
+Noise is the reason why every desired result about nature (i.e. the environment) is not deterministically calculable. Unfortunately, we've yet to find a way to avoid it altogether; but, there exist many methods of removing noise from the observed data in order to obtain the signal of importance. Because we can't exactly calculate each property of the universe, there is a lot of uncertainty in our daily lives. Fortunately, the modern day brings with it machine learning techniques which can help us learn. However, like our measurement instruments, they are also susceptible to noise.
 
 This is a study on noise and how it affects the performance of machine learning models with it's prominence in training data. First, we embark on a brief discussion on noise and it's origin; then, we consider some experimental results comparing the tolerance of noise between three different machine learning models.
 
 # Noise Genesis
 
-Before we define noise, let's prepare a platform off of which to jump towards the idea of noise in observation.
+As humans, our methods of observation include the systems involving our primary senses. For self-driving cars, these methods of observation may include systems which rely on cameras, LIDAR sensors, and accelerometers. In any case, agents use these methods of observation to measure certain aspects of the environment. The act of an agent observing an environmental aspect is one point of noise genesis. Due to the imprecision of known measurement methods, the observations of the agent are not precise. This lack of precision propagates into the agent's internal model of the environment, which thereby induces potentially inappropriate outputs.
 
-First, let's assume our realm of conversation consists only of an agent (e.g. an engineer, robot, self-driving car, etc.) and the environment. Perhaps this environment contains other agents, or perhaps it contains some dynamic processes which allow motion through time and space. In either case, we are only concerned with one agent within an environment.
+There are other sources of noise, but this is the one which we will focus on in this blog post. When noise is present, we often face issues of overfitting data that doesn't truly reflect the natural environment. Thus, noise should be avoided at all costs.
 
-Furthermore, let's describe an agent as an actor with a set of sensory inputs (e.g. eyes, a microphone, an infrared sensor, etc.) and a set of potential control outputs (e.g. raise arm, move forward ten meters, deploy parachute, etc.).
-
-In order for this agent to interact with the environment, some other conditions must be met. Let's formally define an agent as follows.
-
-An agent is an actor (e.g. human, robot, car, etc.) that possesses
-- A set of sensory inputs
-- A set of control outputs
-
-Moreover, in order for agency to exist, the following conditions must hold:
-1. The agent maintains an internal model<sup>1</sup> of the environment.
-2. The agent has at least one method of observation.
-3. The agent is able to combine environmental observations with the internal environmental model.
-
-Since we care to analyze the effect of noise in certain outcomes, this blog post is primarily concerned with condition 2 and somewhat concerned with condition 3. As humans, our methods of observation include the systems involving our primary senses. For self-driving cars, these methods of observation may include systems which rely on cameras, LIDAR sensors, and accelerometers. In any case, agents use these methods of observation to measure certain aspects of the environment. Intuitively, the aspects which an agent measures are chosen based on learned ideas from previous observations. From this, we assume that the agent has no prior knowledge of the environment such that they have to learn it from pure observation.
-        
-The act of an agent observing an environmental aspect is one point of noise genesis. Due to the imprecision of known measurement methods, the observations of the agent are not precise. This lack of precision propagates into the agent's internal model of the environment, which thereby induces potentially inappropriate outputs.
-
-Another point of noise genesis comes from bias, which is more of a structure problem than a precision problem. Bias occurs when one observation does not reflect the true nature of the global environment. For instance, birds of paradise in New Guinea<sup>2</sup> are losing their homes due to the biased observations of humans gathering food and building materials.
-
-Why is noise a problem? Noise causes incorrect conclusions to be drawn from data. If we measure city air pollutants with imprecise instruments or in outlier areas, then the noise in the data will be reflected in the decisions made based on those results.
-
-For this reason, it is important to combat noise to the fullest of our abilities. One source of structural noise is a disparity between the perspectives of different agents. Later in this post, we will discuss an experiment comparing a few different machine learning models and their abilities to find the signal in the noise. First, we will see how the data was generated and then briefly describe the models which were tested. Finally, we will discuss the results of the experiment.
-
-<sup>1</sup> This usage of the term *model* is different than the common usage in machine learning. Here, it refers to a general description outlining the components of the environment and how they all work.
-
-<sup>2</sup> I highly recommend the Netflix documentary called [Dancing With The Birds](https://www.netflix.com/title/80186796).
+Next, let's create some data with some artificial noise with which to create a few machine learning algorithms. We will observe which algorithms withstand noise and which will fall to it's imprecise effect. Finally, we will discuss some further topics which can be studied in the future.
 
 # Data
 
-The data used was generated from a sine wave. A sine wave was chosen because it is a simple function that isn't a polynomial. This is an important feature of the experiment because one of our models will employ polynomials, so we don't want there to be a "competitive advantage".
+The data used was generated from a sine wave. We simply sampled points in an interval and generated the sine value using Numpy. A sine wave was chosen because it is a simple function that isn't a polynomial. This is an important feature of the experiment because one of our models will employ polynomials, so we don't want there to be a "competitive advantage".
 
 Following is a brief description on how each of the sets of data were calculated.
 
@@ -58,7 +33,7 @@ Following is a brief description on how each of the sets of data were calculated
 
 - Training Outputs: 
 
-  $$Y_{train}=\{\mathcal{N}(y, \sigma^2)\;|\; y\in Y_{test},\;\sigma^2\in\Sigma\}$$
+  $$Y_{train}=\{\mathcal{N}(y, \sigma)\;|\; y\in Y_{test},\;\sigma\in\Sigma\}$$
 
   where $\Sigma$ is the set of all "noise levels".
 
@@ -73,7 +48,7 @@ The reason this matters is that if we use geometric (or logarithmic) spacing, th
 
 <center>
 
-![Noise Plot](./images/noise.png){ width=80% }
+![Figure 1: Noise Plot](./images/noise.png){ width=80% }
 
 </center>
 
@@ -96,19 +71,19 @@ This group of models was chosen because it includes one model that doesn't use g
 
 # Results & Discussion
 
-Next, we want to look at the errors. Since the models we picked are rather different in the number of parameters, there will be an inherent difference in errors; although, we wish only to observe the trends with respect to one another. Therefore, they have been scaled to a standard normal distribution so that we can observe them all side-by-side.
+Let's examine the errors of each model with respect to the amount of noise added.
 
 <center>
 
-![Error Plot](./images/errors.png){ width=80% }
+![Figure 2: Error Plot](./images/errors.png){ width=80% }
 
 </center>
 
-While knowing the error rating per degree of noise is useful in giving a rating system for the models, it is still very helpful to see the prediction plots for each model. For instance, techniques like high-order Newton-Cotes interpolation operate very poorly around the edges of the interval. This is not reflected in the error, so we can use the prediction plots to see in which areas of the domain our models performed the best/worst. Moreover, we can see how these behaviors change as we introduce more and more noise into the data.
+While knowing the error rating per degree of noise is useful in giving a rating system for the models, it is still very helpful to see the prediction plots for each model. For instance, some techniques operate very poorly around the edges of the domain. This is not easily reflected in the error plot, so we can use them in conjunction with the prediction plots to see in which areas of the domain our models performed the best/worst. Moreover, we can see how these behaviors change as we introduce more and more noise into the data.
 
 <center>
 
-![Prediction Plot](./images/predictions.png){ width=80% }
+![Figure 3: Prediction Plot](./images/predictions.png){ width=80% }
 
 </center>
 
